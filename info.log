@@ -1,0 +1,39 @@
+2021-10-08 22:40:08,273 INFO :: Info
+2021-10-08 22:40:08,273 WARNING :: warning
+2021-10-08 22:40:08,273 ERROR :: error
+2021-10-08 22:49:01,864 INFO :: This is logged in all cases
+2021-10-08 22:49:01,864 INFO :: This is logged only if we execute main.py file
+2021-10-09 00:31:00,654 INFO :: Binance Futuers
+2021-10-09 00:31:39,543 INFO :: Binance Futuers
+2021-10-09 00:32:12,156 INFO :: Binance Futuers
+2021-10-09 00:33:15,991 INFO :: Binance Futuers
+2021-10-09 13:37:20,942 INFO :: Binance Futuers
+2021-10-09 13:37:24,879 INFO :: Binance Connection Opened
+2021-10-09 13:38:08,203 INFO :: Binance Futuers
+2021-10-09 13:38:08,996 INFO :: Binance Connection Opened
+2021-10-09 13:38:48,637 INFO :: Binance Futuers
+2021-10-09 13:38:49,556 INFO :: Binance Connection Opened
+2021-10-09 13:40:04,736 INFO :: Binance Futuers
+2021-10-09 13:40:05,527 INFO :: Binance Connection Opened
+2021-10-09 13:41:04,014 INFO :: Binance Futuers
+2021-10-09 13:41:04,675 INFO :: Binance Connection Opened
+2021-10-09 13:41:04,728 ERROR :: Error while making GET request to /fapi/v2/account: {'code': -2014, 'msg': 'API-key format invalid.'} (error code 401)
+2021-10-09 19:18:42,469 INFO :: Binance Futuers
+2021-10-09 19:18:43,120 INFO :: Binance Connection Opened
+2021-10-09 19:18:43,431 ERROR :: Error while making GET request to /fapi/v2/account: {'code': -2014, 'msg': 'API-key format invalid.'} (error code 401)
+2021-10-09 19:19:04,501 INFO :: Binance Futuers
+2021-10-09 19:19:05,425 INFO :: Binance Connection Opened
+2021-10-09 19:20:02,573 INFO :: Binance Futuers
+2021-10-09 19:20:03,459 INFO :: Binance Connection Opened
+2021-10-09 19:20:48,012 INFO :: Binance Futuers
+2021-10-09 19:20:48,826 INFO :: Binance Connection Opened
+2021-10-09 19:21:11,288 INFO :: Binance Futuers
+2021-10-09 19:21:12,045 INFO :: Binance Connection Opened
+2021-10-09 19:21:44,821 INFO :: Binance Futuers
+2021-10-09 19:21:45,632 INFO :: Binance Connection Opened
+2021-10-09 19:38:47,742 INFO :: Binance Futuers
+2021-10-09 19:38:48,392 INFO :: Binance Connection Opened
+2021-10-09 19:38:48,479 ERROR :: Error while making GET request to /fapi/v2/account: {'code': -2014, 'msg': 'API-key format invalid.'} (error code 401)
+2021-10-09 19:39:19,277 INFO :: Binance Futuers
+2021-10-09 19:39:19,867 INFO :: Binance Connection Opened
+2021-10-09 19:39:20,157 ERROR :: Error while making GET request to /fapi/v2/account: {'code': -2014, 'msg': 'API-key format invalid.'} (error code 401)
