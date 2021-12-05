@@ -8,6 +8,7 @@ import json
 import threading
 import ssl
 import typing
+import collections
 
 from urllib.parse import urlencode
 from models import  *
@@ -22,41 +23,58 @@ logger = logging.getLogger()
 class BinanceFutureClient:
     def __init__(self, public_key:str ,secret_key:str , testnet:bool):
         if testnet:
-            self.base_url = "https://testnet.binancefuture.com"
-            self.wss_url = "wss://stream.binancefuture.com/ws"
+            self._base_url = "https://testnet.binancefuture.com"
+            self._wss_url = "wss://stream.binancefuture.com/ws"
         else:
-            self.base_url = "https://fapi.binance.com"
-            self.wss_url = "wss://fstream.binance.com/ws"
+            self._base_url = "https://fapi.binance.com"
+            self._wss_url = "wss://fstream.binance.com/ws"
 
-        self.public_key = public_key
-        self.secret_key = secret_key
+        self._public_key = public_key
+        self._secret_key = secret_key
 
-        self.headers = {'X-MBX-APIKEY': self.public_key}
+        self._headers = {'X-MBX-APIKEY': self._public_key}
 
         self.contracts = self.get_contracts()
         self.balances = self.get_balances()
 
         self.prices = dict()
+        self.logs = []
 
-        self.id = 1
-        self.ws = None
+        self._ws_id = 1
+        self._ws = None
 
-        t = threading.Thread(target=self.start_ws)
+        t = threading.Thread(target=self._start_ws)
 
         t.start()
 
         logger.info("Binance Futuers")
 
-    def generate_signature(self, data: typing.Dict) -> str:
-        return hmac.new(self.secret_key.encode(), urlencode(data).encode(), hashlib.sha256).hexdigest()
+    def _add_log(self, msg: str):
+        logger.infor("%s", msg)
+        self.logs.append({"log": msg, "displayed": False})
 
-    def make_requests(self, method: str, endpoint: str, data: typing.Dict):
+    def _generate_signature(self, data: typing.Dict) -> str:
+        return hmac.new(self._secret_key.encode(), urlencode(data).encode(), hashlib.sha256).hexdigest()
+
+    def _make_requests(self, method: str, endpoint: str, data: typing.Dict):
         if method == "GET":
-            response = requests.get(self.base_url + endpoint, params=data)
+            try:
+                response = requests.get(self._base_url + endpoint, params=data)
+            except Exception as e:
+                logger.error("Connection error while making %s request to %s", method, endpoint, e)
+                return None
         elif method == "POST":
-            response = requests.post(self.base_url + endpoint, params=data)
+            try:
+                response = requests.post(self._base_url + endpoint, params=data)
+            except Exception as e:
+                logger.error("Connection error while making %s request to %s", method, endpoint, e)
+                return None
         elif method == "DELETE":
-            response = requests.delete(self.base_url + endpoint, params=data)
+            try:
+                response = requests.delete(self._base_url + endpoint, params=data)
+            except Exception as e:
+                logger.error("Connection error while making %s request to %s", method, endpoint, e)
+                return None
         else:
             return ValueError()
 
@@ -68,7 +86,7 @@ class BinanceFutureClient:
             return None
 
     def get_contracts(self) -> typing.Dict[str, Contract]:
-        exchange_info = self.make_requests("GET", "/fapi/v1/exchangeInfo", dict())
+        exchange_info = self._make_requests("GET", "/fapi/v1/exchangeInfo", dict())
 
         contracts = dict()
 
@@ -76,7 +94,7 @@ class BinanceFutureClient:
             for contract_data in exchange_info["symbols"]:
                 contracts[contract_data["pair"]] = Contract(contract_data)
 
-        return contracts
+        return collections.OrderedDict(sorted(contracts.items()))
 
     def get_historical_candles(self, contract: Contract, interval: str) -> typing.List[Candle]:
         data = dict()
@@ -84,9 +102,9 @@ class BinanceFutureClient:
         data['interval'] = interval
         data['limit'] = 1000
 
-        raw_candles = self.make_requests("GET","/fapi/v1/klines", data)
+        raw_candles = self._make_requests("GET","/fapi/v1/klines", data)
         candles = []
-        if raw_candles:
+        if raw_candles is not None:
             for c in raw_candles:
                 candles.append(Candle(c))
 
@@ -95,7 +113,7 @@ class BinanceFutureClient:
     def get_bid_ask(self,contract: Contract) -> typing.Dict[str, float]:
         data = dict()
         data['symbol'] = contract.symbol
-        ob_data = self.make_requests("GET", "/fapi/v1/ticker/bookTicker",data)
+        ob_data = self._make_requests("GET", "/fapi/v1/ticker/bookTicker",data)
 
         if ob_data:
             if contract.symbol not in self.prices:
@@ -109,14 +127,16 @@ class BinanceFutureClient:
     def get_balances(self) -> typing.Dict[str, Balance]:
         data = dict()
         data["timestamp"] = int(time.time() * 1000)
-        data['signature'] = self.generate_signature(data)
+        data['signature'] = self._generate_signature(data)
+
 
         balances = dict()
-        account_data = self.make_requests("GET", "/fapi/v2/account", data=data)
+        account_data = self._make_requests("GET", "/fapi/v2/account", data=data)
 
         if account_data:
             for a in account_data["assets"]:
                 balances[a["assets"]] = Balance(a)
+
 
         # print(balances['USDT'].wallet_balance)
         return balances
@@ -135,9 +155,9 @@ class BinanceFutureClient:
             data['timeInForce'] = tif
 
         data['timestamp'] = int(time.time() * 1000)
-        data['signature'] = self.generate_signature(data)
+        data['signature'] = self._generate_signature(data)
 
-        order_status  = self.make_requests("POST", "/fapi/v1/order", data)
+        order_status  = self._make_requests("POST", "/fapi/v1/order", data)
 
         if order_status:
             order_status = OrderStatus(order_status)
@@ -150,9 +170,9 @@ class BinanceFutureClient:
         data['symbol'] = contract.symbol
 
         data['timestamp'] = int(time.time() * 1000)
-        data['signature'] = self.generate_signature(data)
+        data['signature'] = self._generate_signature(data)
 
-        order_status = self.make_requests("DELETE","/fapi/v1/order", data)
+        order_status = self._make_requests("DELETE","/fapi/v1/order", data)
 
         if order_status:
             order_status = OrderStatus(order_status)
@@ -162,37 +182,41 @@ class BinanceFutureClient:
     def get_order_status(self, contract: Contract, order_id: int) -> OrderStatus:
         data = dict()
         data["timestamp"] = int(time.time() * 1000)
-        data['signature'] = self.generate_signature(data)
+        data['signature'] = self._generate_signature(data)
         data['symbol'] = contract.symbol
         data['orderId'] = order_id
 
-        order_status  = self.make_requests("GET", "/fapi/v1/order", data)
+        order_status  = self._make_requests("GET", "/fapi/v1/order", data)
 
         if order_status:
             order_status = OrderStatus(order_status)
 
         return order_status
 
-    def start_ws(self):
-        self.ws = websocket.WebSocketApp(self.wss_url,
-                                    on_open=self.on_open,
-                                    on_close=self.on_close,
-                                    on_error= self.on_error,
-                                    on_message=self.on_message)
+    def _start_ws(self):
+        self.ws = websocket.WebSocketApp(self._wss_url,
+                                    on_open=self._on_open,
+                                    on_close=self._on_close,
+                                    on_error= self._on_error,
+                                    on_message=self._on_message)
+        while True:
+            try:
+                self.ws.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE})
+            except Exception as e:
+                logger.error("Binance error in run_forever function() method %s", e)
+                time.sleep(2)
 
-        self.ws.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE})
-
-    def on_open(self,ws):
+    def _on_open(self,ws):
         logger.info("Binance Connection Opened")
-        #self.subscribe_channel("BTCUSDT")
+        self.subscribe_channel(list(self.contracts.values()), "bookTicker")
 
-    def on_close(self,ws):
+    def _on_close(self,ws):
         logger.warning("Binance Connection Closed")
 
-    def on_error(self,ws ,msg: str):
+    def _on_error(self,ws ,msg: str):
         logger.error("Binance Connection Error %s", msg)
 
-    def on_message(self, ws ,msg: str):
+    def _on_message(self, ws ,msg: str):
         # print(msg)
         data = json.loads(msg)
         if "e" in data:
@@ -204,15 +228,21 @@ class BinanceFutureClient:
                     self.prices[symbol]['bid'] = float(data["b"])
                     self.prices[symbol]['ask'] = float(data["a"])
 
-    def subscribe_channel(self, contract: Contract):
+    def subscribe_channel(self, contracts: typing.List[Contract], channel: str):
         data = dict()
         data["method"] = "SUBSCRIBE"
         data["params"] = []
-        data["params"].append(contract.symbol.lower() + "@bookTicker")
-        data["id"] = self.id
 
-        self.ws.send(json.dumps(data))
-        self.id += 1
+        for contract in contracts:
+            data["params"].append(contract.symbol.lower() + "@" + channel)
+        data["id"] = self._ws_id
+
+        try:
+            self.ws.send(json.dumps(data))
+        except Exception as e:
+            logger.error("Websocket error while subscribing to %s %s updated %s", len(contracts), channel ,e)
+            return None
+        self._ws_id += 1
 
 
 # def write_log():
