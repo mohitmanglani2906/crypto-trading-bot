@@ -27,7 +27,7 @@ if __name__ == "__main__":
     binance = BinanceFutureClient("<Your_PUBLIC_KEY>","<YOUR_SECRET_KEY>",True)
     # print(binance.get_historical_candles("BTCUSDT","1h"))
     # candles  = binance.get_historical_candles("BTCUSDT", "1h")
-    print(candles[-1].high)
+    #print(candless[-1].high)
     # print(binance.get_balances())
     # print(binance.get_contracts())
     root = Root(binance)
